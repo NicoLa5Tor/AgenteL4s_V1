@@ -1,0 +1,16 @@
+# Ignorar carpeta gemmav1
+/gemmaV1/
+
+# Ignorar carpeta de vectorizacion
+/vector_database/
+
+# Ignorar archivos .log
+*.log
+
+# Ignorar entornos virtuales
+venv/
+.env/
+
+# Ignorar archivos de sistema
+.DS_Store
+Thumbs.db
