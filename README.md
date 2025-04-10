@@ -248,6 +248,8 @@ Mi nombre es Nicolás Rodríguez Torres, desarrollador interesado en la aplicaci
 
 Si tienes preguntas o sugerencias sobre este proyecto, no dudes en contactarme.
 
++57 3103391854
+
 ## Licencia
 
 Este proyecto se distribuye bajo licencia MIT, permitiendo su uso libre tanto para fines educativos como comerciales.
