@@ -11,6 +11,10 @@
 venv/
 .env/
 
+# Variables de entorno (no subir al repositorio)
+.env
+.env.*
+
 # Ignorar archivos de sistema
 .DS_Store
 Thumbs.db

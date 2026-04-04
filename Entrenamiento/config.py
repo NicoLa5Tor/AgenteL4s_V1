@@ -1,28 +1,41 @@
 # config.py
 """
-Configuración para el modelo, base de datos y servidor
+Configuración para el modelo, base de datos y servidor.
+Los valores se leen del archivo .env en la raíz del proyecto.
 """
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Config:
-    # Configuración del modelo Llama.cpp
+    # Configuración del modelo Llama.cpp (modelo local legacy)
     MODEL_PATH = "/home/nicolasrodrigeztorres04/.lmstudio/models/TheBloke/dolphin-2.6-mistral-7B-GGUF/dolphin-2.6-mistral-7b.Q4_K_S.gguf"
     N_CTX = 4096
     N_THREADS = 6
-    
-    # Configuración de embeddings (modelo separado para embeddings)
-    EMBEDDING_MODEL_PATH = "all-MiniLM-L6-v2"  # Modelo de embeddings de Sentence Transformers 
-    
-    # Configuración de la base de datos vectorial
-    VECTOR_DB_PATH = "vector_database"
-    VECTOR_DIMENSION = 384  # Dimensión para el modelo all-MiniLM-L6-v2
-    
-    # Configuración del servidor Flask
-    HOST = "0.0.0.0"
-    PORT = 5000
-    DEBUG = True
 
-    # OpenAI API
-    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "SET_API_KEY_HERE")
-    OPENAI_MODEL = "gpt-4.1-nano"
-    OPENAI_TIMEOUT = 60
+    # Embeddings
+    EMBEDDING_MODEL_PATH = "all-MiniLM-L6-v2"
+
+    # Base de datos vectorial
+    VECTOR_DB_PATH = "vector_database"
+    VECTOR_DIMENSION = 384
+
+    # Servidor Flask
+    HOST  = os.environ.get("FLASK_HOST", "0.0.0.0")
+    PORT  = int(os.environ.get("FLASK_PORT", 5000))
+    DEBUG = os.environ.get("FLASK_DEBUG", "true").lower() == "true"
+
+    # OpenAI API — generación de requerimientos
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "REEMPLAZAR_API_KEY")
+    OPENAI_MODEL   = os.environ.get("OPENAI_MODEL", "gpt-4.1-nano")
+    OPENAI_TIMEOUT = int(os.environ.get("OPENAI_TIMEOUT", 60))
+
+    # Estimación de esfuerzo — proveedor activo: "openai" | "lmstudio"
+    ESTIMATION_PROVIDER      = os.environ.get("ESTIMATION_PROVIDER", "openai")
+    ESTIMATION_OPENAI_MODEL  = os.environ.get("ESTIMATION_OPENAI_MODEL", "gpt-4.1-nano")
+    ESTIMATION_TIMEOUT       = int(os.environ.get("ESTIMATION_TIMEOUT", 120))
+
+    # LM Studio (solo aplica si ESTIMATION_PROVIDER=lmstudio)
+    ESTIMATION_LMSTUDIO_BASE_URL = os.environ.get("ESTIMATION_LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
+    ESTIMATION_LMSTUDIO_MODEL    = os.environ.get("ESTIMATION_LMSTUDIO_MODEL", "local-model")

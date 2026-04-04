@@ -10,6 +10,7 @@ import tempfile
 import base64
 from .pdf_utils import extract_text_from_pdf, chunk_text, load_pdf_to_db
 from .requirements_service import RequirementsService
+from .estimation_service import EstimationService
 from openai import APITimeoutError, APIError
 import numpy as np
 
@@ -26,6 +27,7 @@ class FlaskService:
         self.vector_db = vector_db
         self.config = config
         self.requirements_service = RequirementsService(config)
+        self.estimation_service = EstimationService(config)
 
         # Definir rutas
         self.setup_routes()
@@ -513,6 +515,65 @@ Responde a esta pregunta: {query}"""
                     "error": f"Error al eliminar el PDF: {str(e)}"
                 }), 500
     
+        @self.app.route('/estimate-effort', methods=['POST'])
+        def estimate_effort():
+            """
+            Endpoint para estimar el esfuerzo en horas de una lista de requerimientos.
+
+            Recibe la salida directa de /generate-requirements.
+
+            Request:
+            [
+                {
+                    "title": "string",
+                    "description": "string",
+                    "priority": "alta" | "media" | "baja",
+                    "involvedUser": "string",
+                    "hasExternalConnection": boolean,
+                    "requiresVisualScreen": boolean,
+                    "devNumber": integer
+                }
+            ]
+
+            Response: objeto JSON con proyecto, módulos, resumen de horas,
+                      riesgos, supuestos y advertencias del equipo.
+            """
+            data = request.json
+
+            if not isinstance(data, list) or len(data) == 0:
+                return jsonify({
+                    "error": "El body debe ser un array JSON no vacío de requerimientos."
+                }), 400
+
+            # Validación mínima de cada requerimiento recibido
+            required_fields = {
+                "title", "description", "priority",
+                "involvedUser", "hasExternalConnection",
+                "requiresVisualScreen", "devNumber",
+            }
+            for index, req in enumerate(data):
+                if not isinstance(req, dict):
+                    return jsonify({
+                        "error": f"El requerimiento en la posición {index} no es un objeto JSON."
+                    }), 400
+                missing = required_fields - req.keys()
+                if missing:
+                    return jsonify({
+                        "error": f"Faltan campos en el requerimiento {index}: {sorted(missing)}"
+                    }), 400
+
+            try:
+                estimation = self.estimation_service.estimate(data)
+                return jsonify(estimation)
+            except APITimeoutError:
+                return jsonify({
+                    "error": "Timeout al conectar con el proveedor de IA. Intente nuevamente."
+                }), 504
+            except APIError as e:
+                return jsonify({"error": f"Error del proveedor de IA: {str(e)}"}), 502
+            except Exception as e:
+                return jsonify({"error": f"Error al procesar la estimación: {str(e)}"}), 502
+
         @self.app.route('/generate-requirements', methods=['POST'])
         def generate_requirements():
             """
