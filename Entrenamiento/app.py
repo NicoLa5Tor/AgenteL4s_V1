@@ -3,6 +3,7 @@
 API Flask para desplegar el servicio - Versión final completa con correcciones
 """
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import os
 import logging
 import tempfile
@@ -20,6 +21,7 @@ logging.basicConfig(
 class FlaskService:
     def __init__(self, model_manager, vector_db, config):
         self.app = Flask(__name__)
+        CORS(self.app, origins=["http://localhost:8081"])
         self.model_manager = model_manager
         self.vector_db = vector_db
         self.config = config
