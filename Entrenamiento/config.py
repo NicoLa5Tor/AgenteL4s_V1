@@ -2,6 +2,7 @@
 """
 Configuración para el modelo, base de datos y servidor
 """
+import os
 
 class Config:
     # Configuración del modelo Llama.cpp
@@ -20,3 +21,8 @@ class Config:
     HOST = "0.0.0.0"
     PORT = 5000
     DEBUG = True
+
+    # OpenAI API
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "SET_API_KEY_HERE")
+    OPENAI_MODEL = "gpt-4.1-nano"
+    OPENAI_TIMEOUT = 60

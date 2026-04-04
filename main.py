@@ -37,33 +37,31 @@ def main():
     # Inicializar componentes
     model_manager = ModelManager(config)
     vector_db = VectorDatabase(config)
-    
-    # Para tener disponible el modelo de embeddings
+
+    # Cargar solo el modelo de embeddings (no se carga el LLM local)
     model_manager.load_embedding_model()
-    
+
     # Cargar PDF si se especifica
     if args.load_pdf:
         if os.path.exists(args.load_pdf):
             print(f"Cargando PDF: {args.load_pdf}")
             load_pdf_to_db(
-                args.load_pdf, 
-                model_manager, 
-                vector_db, 
-                chunk_size=args.chunk_size, 
+                args.load_pdf,
+                model_manager,
+                vector_db,
+                chunk_size=args.chunk_size,
                 chunk_overlap=args.chunk_overlap
             )
         else:
             print(f"Error: El archivo PDF {args.load_pdf} no existe")
             return
-    
+
     # Si se solicita iniciar el servidor
     if args.serve:
         print("Inicializando servicio API...")
-        
-        # Cargar el modelo LLM
-        model_manager.load_model()
-        
-        # Iniciar el servidor Flask
+        print(f"Modelo activo: {config.OPENAI_MODEL} (OpenAI API)")
+
+        # Iniciar el servidor Flask (el LLM local no se carga)
         print(f"Iniciando servidor API en http://{config.HOST}:{config.PORT}")
         server = FlaskService(model_manager, vector_db, config)
         server.run()

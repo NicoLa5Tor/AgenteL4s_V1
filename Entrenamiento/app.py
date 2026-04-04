@@ -4,10 +4,18 @@ API Flask para desplegar el servicio - Versión final completa con correcciones
 """
 from flask import Flask, request, jsonify
 import os
+import logging
 import tempfile
 import base64
 from .pdf_utils import extract_text_from_pdf, chunk_text, load_pdf_to_db
+from .requirements_service import RequirementsService
+from openai import APITimeoutError, APIError
 import numpy as np
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+)
 
 class FlaskService:
     def __init__(self, model_manager, vector_db, config):
@@ -15,7 +23,8 @@ class FlaskService:
         self.model_manager = model_manager
         self.vector_db = vector_db
         self.config = config
-        
+        self.requirements_service = RequirementsService(config)
+
         # Definir rutas
         self.setup_routes()
         
@@ -502,6 +511,49 @@ Responde a esta pregunta: {query}"""
                     "error": f"Error al eliminar el PDF: {str(e)}"
                 }), 500
     
+        @self.app.route('/generate-requirements', methods=['POST'])
+        def generate_requirements():
+            """
+            Endpoint para generar requerimientos funcionales a partir de una descripción de proyecto.
+
+            Request:
+            {
+                "projectId": 1,
+                "project_description": "Descripción del proyecto en lenguaje natural"
+            }
+
+            Response:
+            [
+                {
+                    "title": "string",
+                    "description": "string",
+                    "priority": "alta" | "media" | "baja",
+                    "involvedUser": "string",
+                    "hasExternalConnection": boolean,
+                    "requiresVisualScreen": boolean,
+                    "devNumber": integer
+                }
+            ]
+            """
+            data = request.json or {}
+            project_id = data.get('projectId')
+            project_description = data.get('project_description', '').strip()
+
+            if project_id is None:
+                return jsonify({"error": "Se requiere projectId"}), 400
+            if not project_description:
+                return jsonify({"error": "Se requiere project_description"}), 400
+
+            try:
+                requirements = self.requirements_service.generate(project_id, project_description)
+                return jsonify(requirements)
+            except APITimeoutError:
+                return jsonify({"error": "Timeout al conectar con OpenAI. Intente nuevamente."}), 504
+            except APIError as e:
+                return jsonify({"error": f"Error de la API de OpenAI: {str(e)}"}), 502
+            except Exception as e:
+                return jsonify({"error": f"Error al procesar la respuesta: {str(e)}"}), 502
+
     def run(self):
         """Inicia el servidor Flask"""
         self.app.run(
