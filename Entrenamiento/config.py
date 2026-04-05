@@ -36,6 +36,11 @@ class Config:
     ESTIMATION_OPENAI_MODEL  = os.environ.get("ESTIMATION_OPENAI_MODEL", "gpt-4.1-nano")
     ESTIMATION_TIMEOUT       = int(os.environ.get("ESTIMATION_TIMEOUT", 120))
 
+    # Backend UniDev para callbacks internos
+    BACKEND_INTERNAL_BASE_URL = os.environ.get("BACKEND_INTERNAL_BASE_URL", "http://localhost:8081")
+    INTERNAL_SERVICE_TOKEN    = os.environ.get("INTERNAL_SERVICE_TOKEN", "")
+    BACKEND_INTERNAL_TIMEOUT  = int(os.environ.get("BACKEND_INTERNAL_TIMEOUT", 30))
+
     # LM Studio (solo aplica si ESTIMATION_PROVIDER=lmstudio)
     ESTIMATION_LMSTUDIO_BASE_URL = os.environ.get("ESTIMATION_LMSTUDIO_BASE_URL", "http://localhost:1234/v1")
     ESTIMATION_LMSTUDIO_MODEL    = os.environ.get("ESTIMATION_LMSTUDIO_MODEL", "local-model")

@@ -8,6 +8,10 @@ import os
 import logging
 import tempfile
 import base64
+import json
+import threading
+from urllib import request as urllib_request
+from urllib import error as urllib_error
 from .pdf_utils import extract_text_from_pdf, chunk_text, load_pdf_to_db
 from .requirements_service import RequirementsService
 from .estimation_service import EstimationService
@@ -23,6 +27,7 @@ class FlaskService:
     def __init__(self, model_manager, vector_db, config):
         self.app = Flask(__name__)
         CORS(self.app, origins=["http://localhost:8081"])
+        self.logger = logging.getLogger(__name__)
         self.model_manager = model_manager
         self.vector_db = vector_db
         self.config = config
@@ -574,6 +579,30 @@ Responde a esta pregunta: {query}"""
             except Exception as e:
                 return jsonify({"error": f"Error al procesar la estimación: {str(e)}"}), 502
 
+        @self.app.route('/estimate-effort-async', methods=['POST'])
+        def estimate_effort_async():
+            data = request.json or {}
+            project_id = data.get('projectId')
+            requirements = data.get('requirements')
+
+            if project_id is None:
+                return jsonify({"error": "Se requiere projectId"}), 400
+            if not isinstance(requirements, list) or len(requirements) == 0:
+                return jsonify({"error": "Se requiere un array no vacio de requirements"}), 400
+
+            worker = threading.Thread(
+                target=self._process_estimation_only,
+                args=(project_id, requirements),
+                daemon=True
+            )
+            worker.start()
+
+            return jsonify({
+                "accepted": True,
+                "projectId": project_id,
+                "message": "Reestimacion del proyecto iniciada."
+            }), 202
+
         @self.app.route('/generate-requirements', methods=['POST'])
         def generate_requirements():
             """
@@ -607,15 +636,119 @@ Responde a esta pregunta: {query}"""
             if not project_description:
                 return jsonify({"error": "Se requiere project_description"}), 400
 
-            try:
-                requirements = self.requirements_service.generate(project_id, project_description)
-                return jsonify(requirements)
-            except APITimeoutError:
-                return jsonify({"error": "Timeout al conectar con OpenAI. Intente nuevamente."}), 504
-            except APIError as e:
-                return jsonify({"error": f"Error de la API de OpenAI: {str(e)}"}), 502
-            except Exception as e:
-                return jsonify({"error": f"Error al procesar la respuesta: {str(e)}"}), 502
+            worker = threading.Thread(
+                target=self._process_project_pipeline,
+                args=(project_id, project_description),
+                daemon=True
+            )
+            worker.start()
+
+            return jsonify({
+                "accepted": True,
+                "projectId": project_id,
+                "message": "Procesamiento de requerimientos y estimacion iniciado."
+            }), 202
+
+    def _process_project_pipeline(self, project_id, project_description):
+        try:
+            requirements = self.requirements_service.generate(project_id, project_description)
+            if not isinstance(requirements, list) or len(requirements) == 0:
+                self._post_failure(project_id, "REQUIREMENTS", "La IA no devolvio requerimientos para este proyecto.")
+                return
+
+            sanitized_requirements = [self._sanitize_requirement(req) for req in requirements]
+            self._post_json(
+                f"{self.config.BACKEND_INTERNAL_BASE_URL.rstrip('/')}/internal/estimations/{project_id}/requirements",
+                sanitized_requirements
+            )
+        except APITimeoutError:
+            self._post_failure(project_id, "REQUIREMENTS", "Timeout al conectar con OpenAI.")
+        except APIError as e:
+            self._post_failure(project_id, "REQUIREMENTS", f"Error del proveedor de IA: {str(e)}")
+        except Exception as e:
+            self.logger.exception("Error en pipeline async de projectId=%s", project_id)
+            self._post_failure(project_id, "REQUIREMENTS", f"Error al procesar requerimientos: {str(e)}")
+            return
+
+        try:
+            estimation = self.estimation_service.estimate(requirements)
+            self._post_json(
+                f"{self.config.BACKEND_INTERNAL_BASE_URL.rstrip('/')}/internal/estimations/{project_id}/effort",
+                estimation
+            )
+            self.logger.info("Pipeline completado para projectId=%s", project_id)
+        except APITimeoutError:
+            self._post_failure(project_id, "ESTIMATION", "Timeout al generar la estimacion.")
+        except APIError as e:
+            self._post_failure(project_id, "ESTIMATION", f"Error del proveedor de IA durante la estimacion: {str(e)}")
+        except Exception as e:
+            self.logger.exception("Error en estimacion async de projectId=%s", project_id)
+            self._post_failure(project_id, "ESTIMATION", f"Error al procesar la estimacion: {str(e)}")
+
+    def _process_estimation_only(self, project_id, requirements):
+        try:
+            estimation = self.estimation_service.estimate(requirements)
+            self._post_json(
+                f"{self.config.BACKEND_INTERNAL_BASE_URL.rstrip('/')}/internal/estimations/{project_id}/effort",
+                estimation
+            )
+            self.logger.info("Reestimacion completada para projectId=%s", project_id)
+        except APITimeoutError:
+            self._post_failure(project_id, "ESTIMATION", "Timeout al generar la estimacion.")
+        except APIError as e:
+            self._post_failure(project_id, "ESTIMATION", f"Error del proveedor de IA durante la estimacion: {str(e)}")
+        except Exception as e:
+            self.logger.exception("Error en reestimacion async de projectId=%s", project_id)
+            self._post_failure(project_id, "ESTIMATION", f"Error al procesar la reestimacion: {str(e)}")
+
+    def _sanitize_requirement(self, requirement):
+        return {
+            "title": requirement.get("title"),
+            "description": requirement.get("description"),
+            "priority": requirement.get("priority"),
+            "involvedUser": requirement.get("involvedUser"),
+            "hasExternalConnection": requirement.get("hasExternalConnection"),
+            "requiresVisualScreen": requirement.get("requiresVisualScreen"),
+            "devNumber": requirement.get("devNumber", 1) if requirement.get("devNumber") else 1,
+        }
+
+    def _post_failure(self, project_id, stage, error):
+        try:
+            self._post_json(
+                f"{self.config.BACKEND_INTERNAL_BASE_URL.rstrip('/')}/internal/estimations/{project_id}/failure",
+                {
+                    "stage": stage,
+                    "error": error[:4000]
+                }
+            )
+        except Exception:
+            self.logger.exception("No se pudo reportar fallo al backend para projectId=%s", project_id)
+
+    def _post_json(self, url, payload):
+        token = (self.config.INTERNAL_SERVICE_TOKEN or "").strip()
+        if not token:
+            raise RuntimeError("INTERNAL_SERVICE_TOKEN no configurado en AgenteL4s.")
+
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib_request.Request(
+            url,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "X-Internal-Service-Token": token,
+            },
+            method="POST",
+        )
+
+        try:
+            with urllib_request.urlopen(req, timeout=self.config.BACKEND_INTERNAL_TIMEOUT) as response:
+                status = response.getcode()
+                if status >= 400:
+                    raise RuntimeError(f"Callback al backend fallo con status {status}")
+        except urllib_error.HTTPError as exc:
+            raise RuntimeError(f"Callback al backend fallo con status {exc.code}") from exc
+        except urllib_error.URLError as exc:
+            raise RuntimeError(f"No se pudo conectar con el backend: {exc.reason}") from exc
 
     def run(self):
         """Inicia el servidor Flask"""
