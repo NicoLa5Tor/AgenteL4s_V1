@@ -20,25 +20,48 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = """Actúa como un arquitecto de software senior y especialista en estimación \
-de esfuerzo en proyectos de desarrollo empresarial.
+de esfuerzo en proyectos de desarrollo empresarial con equipos asistidos por IA.
 
 CONTEXTO DE ENTRADA:
-Recibirás una lista de requerimientos funcionales en formato JSON. Cada requerimiento incluye:
+Recibirás un objeto JSON con:
+- contexto_estimacion:
+  - aiAssistedByDefault: boolean
+  - activeLevels: lista de niveles activos a comparar
+- requirements: lista de requerimientos funcionales
+
+Cada requerimiento incluye:
 - title: nombre corto del requerimiento
 - description: descripción detallada de la funcionalidad
 - priority: "alta" | "media" | "baja"
 - involvedUser: tipo de actor involucrado
 - hasExternalConnection: true si depende de APIs externas, pasarelas de pago, servicios cloud, etc.
 - requiresVisualScreen: true si requiere interfaz gráfica, formulario, dashboard o pantalla
-- devNumber: número de desarrolladores junior asignados a ese requerimiento
+- devNumber: número de desarrolladores asignados a ese requerimiento
 
 PERFIL DEL EQUIPO:
-El equipo está compuesto únicamente por desarrolladores junior. \
-Ajusta las horas de cada requerimiento considerando:
-- Mayor tiempo de análisis y diseño previo
-- Mayor tiempo de implementación respecto a un perfil senior
-- Mayor necesidad de pruebas y correcciones
-- Curva de aprendizaje en integraciones externas o tecnologías nuevas
+Debes estimar escenarios por nivel. Los niveles activos vendrán en "activeLevels".
+
+REGLA BASE OBLIGATORIA:
+Asume que cualquier nivel usa IA para ayudar en el desarrollo. La IA acelera:
+- scaffolding
+- boilerplate
+- documentación base
+- tests iniciales
+- maquetado repetitivo
+- refactors simples y tareas repetitivas
+
+La IA no reduce de forma agresiva:
+- arquitectura
+- integraciones complejas
+- seguridad
+- debugging difícil
+- reglas de negocio críticas
+- decisiones técnicas de alto impacto
+
+Diferencia entre niveles:
+- JUNIOR + IA: más lento, más validación y más retrabajo
+- MIDDLE + IA: velocidad intermedia y menos retrabajo
+- SENIOR + IA: más rápido y con mejor resolución de ambigüedad
 
 OBJETIVO:
 Analizar los requerimientos, agruparlos en módulos funcionales coherentes y estimar \
@@ -47,16 +70,16 @@ las horas totales de esfuerzo por cada requerimiento individual, considerando:
 - Pantallas, endpoints o procesos involucrados
 - Integraciones externas y validaciones de negocio
 - Volumen de datos y riesgos técnicos
-- Cantidad de desarrolladores junior disponibles (devNumber)
+- Cantidad de desarrolladores disponibles (devNumber)
 - Pruebas requeridas y retrabajo esperado por ambigüedad
 
-Usa criterio de proyectos reales con equipos junior en entornos empresariales.
+Usa criterio de proyectos reales con equipos asistidos por IA en entornos empresariales.
 
 ==================================================
 REGLAS ESTRICTAS DE RESPUESTA
 ==================================================
 
-1. Responde ÚNICAMENTE con JSON válido. Sin texto fuera del JSON.
+1. Responde ÚNICAMENTE con JSON válido. Sin texto fuera del JSON, y sin dejar ningun campo vacio.
 2. No uses markdown, no uses bloques de código, no uses comentarios.
 3. No agregues campos fuera del schema definido.
 4. Todos los valores de horas deben ser enteros positivos (>= 1).
@@ -69,25 +92,29 @@ en "supuestos" y ajusta ligeramente al alza las horas estimadas.
 10. "total_horas_proyecto" debe ser la suma exacta de todos los "total_horas_modulo".
 11. Si existen dependencias entre módulos, aumentar la complejidad del módulo dependiente.
 12. Si detectas incertidumbre técnica o riesgos, agregarlos en "riesgos_detectados".
-13. Usa "advertencias_equipo" para señalar cuellos de botella o sobrecargas del equipo junior.
+13. Usa "advertencias_equipo" para señalar cuellos de botella o sobrecargas del equipo.
+14. Debes devolver escenarios en "estimaciones_por_nivel" para cada nivel activo recibido.
+15. El bloque principal del proyecto, módulos y "total_horas_proyecto" debe representar un escenario base razonable bajo uso de IA.
 
 ==================================================
 CRITERIOS DE COMPLEJIDAD
 ==================================================
 
-- baja:     CRUD simple, pocas reglas de negocio, sin integraciones. ~8-20h por requerimiento.
-- media:    Validaciones moderadas, reportes, dashboards o lógica intermedia. ~20-50h.
-- alta:     Múltiples flujos, procesos transaccionales, seguridad o integraciones. ~50-100h.
-- muy_alta: Alta concurrencia, múltiples terceros simultáneos, tecnología compleja. ~100h+.
+- baja:     CRUD simple, pocas reglas de negocio, sin integraciones. ~6-16h por requerimiento.
+- media:    Validaciones moderadas, reportes, dashboards o lógica intermedia. ~16-38h.
+- alta:     Múltiples flujos, procesos transaccionales, seguridad o integraciones. ~38-82h.
+- muy_alta: Alta concurrencia, múltiples terceros simultáneos, tecnología compleja. ~82h+.
 
 Ajusta horas considerando:
-- El campo "devNumber" indica cuántos juniors trabajan en ese requerimiento en paralelo; \
+- El campo "devNumber" indica cuántos desarrolladores trabajan en ese requerimiento en paralelo; \
   a mayor devNumber, las horas individuales se distribuyen pero el esfuerzo total puede bajar.
 - Si "hasExternalConnection" es true: sumar horas adicionales por integración, \
   manejo de errores y pruebas de conectividad.
 - Si "requiresVisualScreen" es true: sumar horas adicionales por diseño, \
   maquetado y pruebas de UI.
 - La prioridad "alta" implica mayor rigor en pruebas y revisión de código.
+- En todos los niveles asume apoyo de IA por defecto.
+- Entre niveles, la estructura funcional debe mantenerse, pero el total de horas debe reflejar la diferencia de seniority.
 
 ==================================================
 SCHEMA DE SALIDA — OBLIGATORIO
@@ -121,7 +148,16 @@ SCHEMA DE SALIDA — OBLIGATORIO
   "total_horas_proyecto": 0,
   "riesgos_detectados": ["string"],
   "supuestos": ["string"],
-  "advertencias_equipo": ["string"]
+  "advertencias_equipo": ["string"],
+  "estimaciones_por_nivel": [
+    {
+      "codigo_nivel": "JUNIOR | MIDDLE | SENIOR | OTRO",
+      "nombre_nivel": "string",
+      "complejidad_general": "baja | media | alta | muy_alta",
+      "total_horas_proyecto": 0,
+      "nota_estimacion": "string"
+    }
+  ]
 }"""
 
 # ---------------------------------------------------------------------------
@@ -165,12 +201,13 @@ class EstimationService:
             logger.info("EstimationService inicializado con OpenAI | model=%s", self.model)
 
         self.provider = provider
+        self.max_retries = max(1, int(config.ESTIMATION_MAX_RETRIES))
 
     # ------------------------------------------------------------------
     # Método público
     # ------------------------------------------------------------------
 
-    def estimate(self, requirements: list) -> dict:
+    def estimate(self, requirements: list, context=None) -> dict:
         """
         Estima el esfuerzo en horas por requerimiento para una lista de entradas.
 
@@ -193,39 +230,70 @@ class EstimationService:
             len(requirements),
         )
 
-        user_message = json.dumps(requirements, ensure_ascii=False, indent=2)
+        user_message = json.dumps(
+            {
+                "contexto_estimacion": self._sanitize_context(context),
+                "requirements": requirements,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
+        feedback_message = None
+        last_error = None
+
+        for attempt in range(1, self.max_retries + 1):
+            messages = [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message},
-            ],
-            temperature=0.2,   # baja temperatura → estimaciones más consistentes
+            ]
+            if feedback_message:
+                messages.append({"role": "user", "content": feedback_message})
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                temperature=0.2,
+            )
+
+            raw_content = response.choices[0].message.content.strip()
+            tokens_used = response.usage.total_tokens if response.usage else -1
+
+            logger.info(
+                "estimate-effort response | provider=%s | attempt=%d/%d | tokens_used=%d | raw_length=%d",
+                self.provider,
+                attempt,
+                self.max_retries,
+                tokens_used,
+                len(raw_content),
+            )
+
+            try:
+                estimation = json.loads(raw_content)
+
+                if not isinstance(estimation, dict):
+                    raise ValueError("La respuesta del modelo no es un objeto JSON.")
+
+                return self._validate_schema(estimation, requirements)
+            except (json.JSONDecodeError, ValueError) as exc:
+                last_error = exc
+                feedback_message = self._build_retry_feedback(exc, requirements)
+                logger.warning(
+                    "estimate-effort invalid response | attempt=%d/%d | error=%s",
+                    attempt,
+                    self.max_retries,
+                    str(exc),
+                )
+
+        raise ValueError(
+            f"La respuesta de estimacion siguio incompleta despues de {self.max_retries} intentos: {last_error}"
         )
-
-        raw_content = response.choices[0].message.content.strip()
-        tokens_used = response.usage.total_tokens if response.usage else -1
-
-        logger.info(
-            "estimate-effort response | provider=%s | tokens_used=%d | raw_length=%d",
-            self.provider,
-            tokens_used,
-            len(raw_content),
-        )
-
-        estimation = json.loads(raw_content)
-
-        if not isinstance(estimation, dict):
-            raise ValueError("La respuesta del modelo no es un objeto JSON.")
-
-        return self._validate_schema(estimation)
 
     # ------------------------------------------------------------------
     # Validación del schema de salida
     # ------------------------------------------------------------------
 
-    def _validate_schema(self, estimation: dict) -> dict:
+    def _validate_schema(self, estimation: dict, source_requirements: list) -> dict:
         """
         Valida la estructura del JSON devuelto por el modelo.
 
@@ -265,6 +333,15 @@ class EstimationService:
             if not isinstance(value, list):
                 raise ValueError(f"El campo '{field}' debe ser un array.")
             estimation[field] = value   # garantizar que exista aunque esté vacío
+
+        level_estimations = estimation.get("estimaciones_por_nivel")
+        if not isinstance(level_estimations, list) or len(level_estimations) == 0:
+            raise ValueError("El campo 'estimaciones_por_nivel' debe ser un array no vacío.")
+
+        for index, level_estimation in enumerate(level_estimations):
+            self._validate_level_estimation(level_estimation, index)
+
+        self._validate_requirement_coverage(estimation, source_requirements)
 
         return estimation
 
@@ -330,3 +407,96 @@ class EstimationService:
                 f"'title' en requerimiento {req_index} del módulo {mod_index} "
                 "debe ser un string no vacío."
             )
+
+        if not isinstance(req["razon"], str) or not req["razon"].strip():
+            raise ValueError(
+                f"'razon' en requerimiento {req_index} del módulo {mod_index} "
+                "debe ser un string no vacío."
+            )
+
+    def _validate_level_estimation(self, level_estimation: dict, index: int) -> None:
+        if not isinstance(level_estimation, dict):
+            raise ValueError(f"La estimacion por nivel {index} no es un objeto.")
+
+        for field in ("codigo_nivel", "nombre_nivel", "complejidad_general", "total_horas_proyecto", "nota_estimacion"):
+            if field not in level_estimation:
+                raise ValueError(f"Falta '{field}' en estimaciones_por_nivel[{index}].")
+
+        if level_estimation["complejidad_general"] not in _VALID_COMPLEXITY:
+            raise ValueError(
+                f"'complejidad_general' inválida en estimaciones_por_nivel[{index}]: "
+                f"'{level_estimation['complejidad_general']}'."
+            )
+
+        if not isinstance(level_estimation["total_horas_proyecto"], int) or level_estimation["total_horas_proyecto"] < 1:
+            raise ValueError(f"'total_horas_proyecto' en estimaciones_por_nivel[{index}] debe ser un entero >= 1.")
+
+        if not isinstance(level_estimation["codigo_nivel"], str) or not level_estimation["codigo_nivel"].strip():
+            raise ValueError(f"'codigo_nivel' en estimaciones_por_nivel[{index}] debe ser un string no vacío.")
+
+        if not isinstance(level_estimation["nombre_nivel"], str) or not level_estimation["nombre_nivel"].strip():
+            raise ValueError(f"'nombre_nivel' en estimaciones_por_nivel[{index}] debe ser un string no vacío.")
+
+    def _sanitize_context(self, context) -> dict:
+        fallback_levels = [
+            {"code": "JUNIOR", "displayName": "Junior"},
+            {"code": "MIDDLE", "displayName": "Middle"},
+            {"code": "SENIOR", "displayName": "Senior"},
+        ]
+
+        if not isinstance(context, dict):
+            return {
+                "aiAssistedByDefault": True,
+                "activeLevels": fallback_levels,
+            }
+
+        active_levels = context.get("activeLevels")
+        if not isinstance(active_levels, list) or len(active_levels) == 0:
+            active_levels = fallback_levels
+
+        return {
+            "aiAssistedByDefault": True,
+            "activeLevels": active_levels,
+        }
+
+    def _validate_requirement_coverage(self, estimation: dict, source_requirements: list) -> None:
+        expected_titles = []
+        for index, requirement in enumerate(source_requirements):
+            title = requirement.get("title") if isinstance(requirement, dict) else None
+            if not isinstance(title, str) or not title.strip():
+                raise ValueError(f"El requerimiento de entrada {index} no tiene un 'title' valido.")
+            expected_titles.append(title.strip())
+
+        returned_titles = []
+        for module in estimation.get("modulos", []):
+            for requirement in module.get("requerimientos", []):
+                returned_titles.append(requirement["title"].strip())
+
+        duplicates = sorted({title for title in returned_titles if returned_titles.count(title) > 1})
+        if duplicates:
+            raise ValueError(f"La salida repite requerimientos y eso no es valido: {duplicates}.")
+
+        missing = [title for title in expected_titles if title not in returned_titles]
+        extras = [title for title in returned_titles if title not in expected_titles]
+        if missing or extras:
+            chunks = []
+            if missing:
+                chunks.append(f"faltan estos requerimientos: {missing}")
+            if extras:
+                chunks.append(f"sobran estos requerimientos: {extras}")
+            raise ValueError("La salida no coincide exactamente con la entrada; " + "; ".join(chunks))
+
+    def _build_retry_feedback(self, error: Exception, requirements: list) -> str:
+        expected_titles = [
+            requirement.get("title")
+            for requirement in requirements
+            if isinstance(requirement, dict) and isinstance(requirement.get("title"), str)
+        ]
+        return (
+            "Tu respuesta anterior fue rechazada. "
+            f"Error exacto: {str(error)}. "
+            "Debes reenviar TODO el JSON completo desde cero. No dejes campos vacios ni parciales. "
+            "Cada requerimiento debe aparecer exactamente una vez dentro de modulos[].requerimientos y "
+            "cada uno debe traer obligatoriamente 'title', 'horas_estimadas' y 'razon'. "
+            f"Titulos esperados: {expected_titles}."
+        )

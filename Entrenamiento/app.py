@@ -15,6 +15,7 @@ from urllib import error as urllib_error
 from .pdf_utils import extract_text_from_pdf, chunk_text, load_pdf_to_db
 from .requirements_service import RequirementsService
 from .estimation_service import EstimationService
+from .requirement_chat_service import RequirementChatService
 from openai import APITimeoutError, APIError
 import numpy as np
 
@@ -33,6 +34,7 @@ class FlaskService:
         self.config = config
         self.requirements_service = RequirementsService(config)
         self.estimation_service = EstimationService(config)
+        self.requirement_chat_service = RequirementChatService(config)
 
         # Definir rutas
         self.setup_routes()
@@ -544,8 +546,14 @@ Responde a esta pregunta: {query}"""
                       riesgos, supuestos y advertencias del equipo.
             """
             data = request.json
+            requirements = data
+            context = None
 
-            if not isinstance(data, list) or len(data) == 0:
+            if isinstance(data, dict):
+                requirements = data.get('requirements')
+                context = data.get('context')
+
+            if not isinstance(requirements, list) or len(requirements) == 0:
                 return jsonify({
                     "error": "El body debe ser un array JSON no vacío de requerimientos."
                 }), 400
@@ -556,7 +564,7 @@ Responde a esta pregunta: {query}"""
                 "involvedUser", "hasExternalConnection",
                 "requiresVisualScreen", "devNumber",
             }
-            for index, req in enumerate(data):
+            for index, req in enumerate(requirements):
                 if not isinstance(req, dict):
                     return jsonify({
                         "error": f"El requerimiento en la posición {index} no es un objeto JSON."
@@ -568,7 +576,7 @@ Responde a esta pregunta: {query}"""
                     }), 400
 
             try:
-                estimation = self.estimation_service.estimate(data)
+                estimation = self.estimation_service.estimate(requirements, context)
                 return jsonify(estimation)
             except APITimeoutError:
                 return jsonify({
@@ -584,6 +592,7 @@ Responde a esta pregunta: {query}"""
             data = request.json or {}
             project_id = data.get('projectId')
             requirements = data.get('requirements')
+            context = data.get('context')
 
             if project_id is None:
                 return jsonify({"error": "Se requiere projectId"}), 400
@@ -592,7 +601,7 @@ Responde a esta pregunta: {query}"""
 
             worker = threading.Thread(
                 target=self._process_estimation_only,
-                args=(project_id, requirements),
+                args=(project_id, requirements, context),
                 daemon=True
             )
             worker.start()
@@ -630,6 +639,7 @@ Responde a esta pregunta: {query}"""
             data = request.json or {}
             project_id = data.get('projectId')
             project_description = data.get('project_description', '').strip()
+            context = data.get('context')
 
             if project_id is None:
                 return jsonify({"error": "Se requiere projectId"}), 400
@@ -638,7 +648,7 @@ Responde a esta pregunta: {query}"""
 
             worker = threading.Thread(
                 target=self._process_project_pipeline,
-                args=(project_id, project_description),
+                args=(project_id, project_description, context),
                 daemon=True
             )
             worker.start()
@@ -649,7 +659,34 @@ Responde a esta pregunta: {query}"""
                 "message": "Procesamiento de requerimientos y estimacion iniciado."
             }), 202
 
-    def _process_project_pipeline(self, project_id, project_description):
+        @self.app.route('/requirements-chat', methods=['POST'])
+        def requirements_chat():
+            data = request.json or {}
+            project_id = data.get('projectId')
+            requirement_id = data.get('requirementId')
+            current_requirement = data.get('currentRequirement')
+            conversation = data.get('conversation')
+
+            if project_id is None:
+                return jsonify({"error": "Se requiere projectId"}), 400
+            if requirement_id is None:
+                return jsonify({"error": "Se requiere requirementId"}), 400
+            if not isinstance(current_requirement, dict):
+                return jsonify({"error": "Se requiere currentRequirement"}), 400
+            if not isinstance(conversation, list) or len(conversation) == 0:
+                return jsonify({"error": "Se requiere una conversacion no vacia"}), 400
+
+            try:
+                response = self.requirement_chat_service.reply(data)
+                return jsonify(response)
+            except APITimeoutError:
+                return jsonify({"error": "Timeout al conectar con el proveedor de IA. Intente nuevamente."}), 504
+            except APIError as e:
+                return jsonify({"error": f"Error del proveedor de IA: {str(e)}"}), 502
+            except Exception as e:
+                return jsonify({"error": f"Error al procesar el chat del requerimiento: {str(e)}"}), 502
+
+    def _process_project_pipeline(self, project_id, project_description, context=None):
         try:
             requirements = self.requirements_service.generate(project_id, project_description)
             if not isinstance(requirements, list) or len(requirements) == 0:
@@ -671,7 +708,7 @@ Responde a esta pregunta: {query}"""
             return
 
         try:
-            estimation = self.estimation_service.estimate(requirements)
+            estimation = self.estimation_service.estimate(requirements, context)
             self._post_json(
                 f"{self.config.BACKEND_INTERNAL_BASE_URL.rstrip('/')}/internal/estimations/{project_id}/effort",
                 estimation
@@ -685,9 +722,9 @@ Responde a esta pregunta: {query}"""
             self.logger.exception("Error en estimacion async de projectId=%s", project_id)
             self._post_failure(project_id, "ESTIMATION", f"Error al procesar la estimacion: {str(e)}")
 
-    def _process_estimation_only(self, project_id, requirements):
+    def _process_estimation_only(self, project_id, requirements, context=None):
         try:
-            estimation = self.estimation_service.estimate(requirements)
+            estimation = self.estimation_service.estimate(requirements, context)
             self._post_json(
                 f"{self.config.BACKEND_INTERNAL_BASE_URL.rstrip('/')}/internal/estimations/{project_id}/effort",
                 estimation

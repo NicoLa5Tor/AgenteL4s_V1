@@ -30,11 +30,14 @@ class Config:
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "REEMPLAZAR_API_KEY")
     OPENAI_MODEL   = os.environ.get("OPENAI_MODEL", "gpt-4.1-nano")
     OPENAI_TIMEOUT = int(os.environ.get("OPENAI_TIMEOUT", 60))
+    REQUIREMENT_CHAT_MODEL = os.environ.get("REQUIREMENT_CHAT_MODEL", OPENAI_MODEL)
+    REQUIREMENT_CHAT_TIMEOUT = int(os.environ.get("REQUIREMENT_CHAT_TIMEOUT", OPENAI_TIMEOUT))
 
     # Estimación de esfuerzo — proveedor activo: "openai" | "lmstudio"
     ESTIMATION_PROVIDER      = os.environ.get("ESTIMATION_PROVIDER", "openai")
     ESTIMATION_OPENAI_MODEL  = os.environ.get("ESTIMATION_OPENAI_MODEL", "gpt-4.1-nano")
     ESTIMATION_TIMEOUT       = int(os.environ.get("ESTIMATION_TIMEOUT", 120))
+    ESTIMATION_MAX_RETRIES   = int(os.environ.get("ESTIMATION_MAX_RETRIES", 2))
 
     # Backend UniDev para callbacks internos
     BACKEND_INTERNAL_BASE_URL = os.environ.get("BACKEND_INTERNAL_BASE_URL", "http://localhost:8081")
