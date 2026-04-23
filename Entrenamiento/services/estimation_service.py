@@ -27,6 +27,7 @@ Recibirás un objeto JSON con:
 - contexto_estimacion:
   - aiAssistedByDefault: boolean
   - activeLevels: lista de niveles activos a comparar
+- ejemplos_relevantes: casos historicos parecidos recuperados por similitud semantica
 - requirements: lista de requerimientos funcionales
 
 Cada requerimiento incluye:
@@ -40,6 +41,14 @@ Cada requerimiento incluye:
 
 PERFIL DEL EQUIPO:
 Debes estimar escenarios por nivel. Los niveles activos vendrán en "activeLevels".
+
+USO DE EJEMPLOS:
+Si recibes "ejemplos_relevantes", úsalos como anclas de calibración para evitar inflar o subestimar horas.
+No copies las horas ciegamente. Ajusta según diferencias reales de contexto, pero si el caso actual es muy parecido
+a un ejemplo simple, mantén la estimación cerca de ese rango razonable.
+Si un ejemplo relevante tiene alta coincidencia de tags y retrievalScore alto, trátalo como referencia prioritaria.
+No respondas 12h, 16h o más para un requerimiento visual simple de mapa embebido con iframe si el ejemplo equivalente
+indica que ese caso cae en un rango corto y no hay rutas, tracking, geolocalización activa, panel admin ni lógica adicional.
 
 REGLA BASE OBLIGATORIA:
 Asume que cualquier nivel usa IA para ayudar en el desarrollo. La IA acelera:
@@ -95,6 +104,9 @@ en "supuestos" y ajusta ligeramente al alza las horas estimadas.
 13. Usa "advertencias_equipo" para señalar cuellos de botella o sobrecargas del equipo.
 14. Debes devolver escenarios en "estimaciones_por_nivel" para cada nivel activo recibido.
 15. El bloque principal del proyecto, módulos y "total_horas_proyecto" debe representar un escenario base razonable bajo uso de IA.
+16. Si hay ejemplos_relevantes de baja complejidad muy parecidos al requerimiento actual, evita inflar horas sin justificación concreta.
+17. Si el requerimiento es esencialmente "mostrar un mapa embebido/iframe" sin tracking, rutas, panel admin ni lógica de negocio adicional, normalmente debe quedar cerca de 2-6 horas base.
+18. Si el requerimiento es una landing o formulario simple y existe ejemplo relevante equivalente, mantén la estimación cerca del ejemplo salvo diferencia explícita.
 
 ==================================================
 CRITERIOS DE COMPLEJIDAD
@@ -181,7 +193,7 @@ class EstimationService:
       - "lmstudio" → usa ESTIMATION_LMSTUDIO_MODEL vía LM Studio local
     """
 
-    def __init__(self, config):
+    def __init__(self, config, estimation_examples_service=None):
         provider = config.ESTIMATION_PROVIDER.lower()
 
         if provider == "lmstudio":
@@ -202,6 +214,7 @@ class EstimationService:
 
         self.provider = provider
         self.max_retries = max(1, int(config.ESTIMATION_MAX_RETRIES))
+        self.estimation_examples_service = estimation_examples_service
 
     # ------------------------------------------------------------------
     # Método público
@@ -230,9 +243,11 @@ class EstimationService:
             len(requirements),
         )
 
+        examples = self._retrieve_examples(requirements)
         user_message = json.dumps(
             {
                 "contexto_estimacion": self._sanitize_context(context),
+                "ejemplos_relevantes": examples,
                 "requirements": requirements,
             },
             ensure_ascii=False,
@@ -288,6 +303,15 @@ class EstimationService:
         raise ValueError(
             f"La respuesta de estimacion siguio incompleta despues de {self.max_retries} intentos: {last_error}"
         )
+
+    def _retrieve_examples(self, requirements: list) -> list:
+        if self.estimation_examples_service is None:
+            return []
+        try:
+            return self.estimation_examples_service.retrieve(requirements)
+        except Exception as exc:
+            logger.warning("No se pudieron recuperar ejemplos relevantes para estimacion: %s", exc)
+            return []
 
     # ------------------------------------------------------------------
     # Validación del schema de salida

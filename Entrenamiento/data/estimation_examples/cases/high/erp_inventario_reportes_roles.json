@@ -1,0 +1,18 @@
+{
+  "name": "erp_inventario_reportes_roles",
+  "tags": ["erp", "inventory", "reports", "roles", "admin_panel", "web", "large", "high"],
+  "requirement": {
+    "title": "ERP con inventario, reportes y roles",
+    "description": "Sistema interno para controlar inventario, movimientos, usuarios por rol, reportes operativos y alertas de stock, con trazabilidad y multiples vistas administrativas.",
+    "priority": "alta",
+    "involvedUser": "administrador y operador interno",
+    "hasExternalConnection": false,
+    "requiresVisualScreen": true,
+    "devNumber": 2
+  },
+  "estimation": {
+    "complexity": "alta",
+    "baseHours": 68,
+    "reason": "Combina reglas de negocio operativas, permisos, reporteria y consistencia de datos en varios flujos internos."
+  }
+}

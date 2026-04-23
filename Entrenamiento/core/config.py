@@ -5,10 +5,13 @@ Los valores se leen del archivo .env en la raíz del proyecto.
 """
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 load_dotenv()
 
 class Config:
+    PACKAGE_DIR = Path(__file__).resolve().parent.parent
+
     # Configuración del modelo Llama.cpp (modelo local legacy)
     MODEL_PATH = "/home/nicolasrodrigeztorres04/.lmstudio/models/TheBloke/dolphin-2.6-mistral-7B-GGUF/dolphin-2.6-mistral-7b.Q4_K_S.gguf"
     N_CTX = 4096
@@ -18,7 +21,7 @@ class Config:
     EMBEDDING_MODEL_PATH = "all-MiniLM-L6-v2"
 
     # Base de datos vectorial
-    VECTOR_DB_PATH = "vector_database"
+    VECTOR_DB_PATH = str(PACKAGE_DIR / "vector_database")
     VECTOR_DIMENSION = 384
 
     # Servidor Flask
@@ -38,6 +41,12 @@ class Config:
     ESTIMATION_OPENAI_MODEL  = os.environ.get("ESTIMATION_OPENAI_MODEL", "gpt-4.1-nano")
     ESTIMATION_TIMEOUT       = int(os.environ.get("ESTIMATION_TIMEOUT", 120))
     ESTIMATION_MAX_RETRIES   = int(os.environ.get("ESTIMATION_MAX_RETRIES", 2))
+    ESTIMATION_EXAMPLES_ENABLED = os.environ.get("ESTIMATION_EXAMPLES_ENABLED", "true").lower() == "true"
+    ESTIMATION_EXAMPLES_TOP_K = int(os.environ.get("ESTIMATION_EXAMPLES_TOP_K", 4))
+    ESTIMATION_EXAMPLES_PATH = os.environ.get(
+        "ESTIMATION_EXAMPLES_PATH",
+        str(PACKAGE_DIR / "data" / "estimation_examples" / "index.json")
+    )
 
     # Backend UniDev para callbacks internos
     BACKEND_INTERNAL_BASE_URL = os.environ.get("BACKEND_INTERNAL_BASE_URL", "http://localhost:8081")

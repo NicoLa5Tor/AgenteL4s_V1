@@ -1,0 +1,18 @@
+{
+  "name": "saas_multitenant_billing_automation",
+  "tags": ["saas", "multi_tenant", "billing", "automation", "admin_panel", "web", "enterprise", "very_high"],
+  "requirement": {
+    "title": "SaaS multi-tenant con billing y automatizaciones",
+    "description": "Plataforma SaaS para multiples empresas con aislamiento por tenant, facturacion recurrente, automatizaciones por eventos, panel administrativo, permisos finos y trazabilidad de operaciones.",
+    "priority": "alta",
+    "involvedUser": "administrador y operador interno",
+    "hasExternalConnection": true,
+    "requiresVisualScreen": true,
+    "devNumber": 3
+  },
+  "estimation": {
+    "complexity": "muy_alta",
+    "baseHours": 118,
+    "reason": "Multi-tenant, billing, automatizaciones y permisos finos elevan la arquitectura, pruebas y riesgos operativos."
+  }
+}

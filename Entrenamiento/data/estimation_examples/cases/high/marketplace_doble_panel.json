@@ -1,0 +1,18 @@
+{
+  "name": "marketplace_doble_panel",
+  "tags": ["marketplace", "two_sided", "payments", "chat", "web", "large", "high"],
+  "requirement": {
+    "title": "Marketplace con panel para compradores y vendedores",
+    "description": "Plataforma con publicacion de ofertas, perfiles, mensajeria basica, checkout y paneles separados para vendedor y comprador, con administracion central.",
+    "priority": "alta",
+    "involvedUser": "comprador, vendedor y administrador",
+    "hasExternalConnection": true,
+    "requiresVisualScreen": true,
+    "devNumber": 2
+  },
+  "estimation": {
+    "complexity": "alta",
+    "baseHours": 84,
+    "reason": "Multiples actores, flujos cruzados, pagos, moderacion y paneles diferenciados elevan la complejidad y el retrabajo."
+  }
+}

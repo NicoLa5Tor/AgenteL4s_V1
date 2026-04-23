@@ -12,10 +12,11 @@ import json
 import threading
 from urllib import request as urllib_request
 from urllib import error as urllib_error
-from .pdf_utils import extract_text_from_pdf, chunk_text, load_pdf_to_db
-from .requirements_service import RequirementsService
-from .estimation_service import EstimationService
-from .requirement_chat_service import RequirementChatService
+from ..rag.pdf_utils import extract_text_from_pdf, chunk_text, load_pdf_to_db
+from ..rag.estimation_examples_service import EstimationExamplesService
+from ..services.requirements_service import RequirementsService
+from ..services.estimation_service import EstimationService
+from ..services.requirement_chat_service import RequirementChatService
 from openai import APITimeoutError, APIError
 import numpy as np
 
@@ -33,7 +34,8 @@ class FlaskService:
         self.vector_db = vector_db
         self.config = config
         self.requirements_service = RequirementsService(config)
-        self.estimation_service = EstimationService(config)
+        self.estimation_examples_service = EstimationExamplesService(config, model_manager)
+        self.estimation_service = EstimationService(config, self.estimation_examples_service)
         self.requirement_chat_service = RequirementChatService(config)
 
         # Definir rutas

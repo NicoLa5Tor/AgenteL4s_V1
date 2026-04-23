@@ -1,0 +1,18 @@
+{
+  "name": "ecommerce_pagos_pedidos",
+  "tags": ["ecommerce", "payments", "orders", "admin_panel", "web", "large", "high", "retail"],
+  "requirement": {
+    "title": "Ecommerce con pagos y gestion de pedidos",
+    "description": "Tienda online con carrito, checkout, integracion de pagos, seguimiento de pedidos, estados y panel administrativo para catalogo, ventas y clientes.",
+    "priority": "alta",
+    "involvedUser": "cliente final y administrador",
+    "hasExternalConnection": true,
+    "requiresVisualScreen": true,
+    "devNumber": 2
+  },
+  "estimation": {
+    "complexity": "alta",
+    "baseHours": 72,
+    "reason": "Cruza flujos publicos y administrativos, pagos, estados transaccionales y pruebas de escenarios criticos."
+  }
+}

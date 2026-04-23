@@ -1,0 +1,18 @@
+{
+  "name": "logistica_rutas_tiempo_real",
+  "tags": ["logistics", "real_time", "tracking", "geolocation", "mobile_app", "enterprise", "very_high"],
+  "requirement": {
+    "title": "Logistica con rutas y tracking en tiempo real",
+    "description": "Sistema para coordinacion de rutas, seguimiento en tiempo real, asignacion de entregas, notificaciones, mapa operativo y panel de control para despacho y soporte.",
+    "priority": "alta",
+    "involvedUser": "despachador, repartidor y cliente final",
+    "hasExternalConnection": true,
+    "requiresVisualScreen": true,
+    "devNumber": 3
+  },
+  "estimation": {
+    "complexity": "muy_alta",
+    "baseHours": 126,
+    "reason": "Tiempo real, geolocalizacion y coordinacion entre multiples actores aumentan la complejidad técnica y el volumen de escenarios a probar."
+  }
+}

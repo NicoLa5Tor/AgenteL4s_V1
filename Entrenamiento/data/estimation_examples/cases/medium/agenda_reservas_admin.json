@@ -1,0 +1,18 @@
+{
+  "name": "agenda_reservas_admin",
+  "tags": ["booking", "calendar", "admin_panel", "web", "medium", "medium", "services"],
+  "requirement": {
+    "title": "Agenda de reservas con panel administrativo",
+    "description": "Modulo para que clientes soliciten reservas y el administrador gestione disponibilidad, estados y reprogramaciones desde un panel interno.",
+    "priority": "alta",
+    "involvedUser": "administrador",
+    "hasExternalConnection": false,
+    "requiresVisualScreen": true,
+    "devNumber": 1
+  },
+  "estimation": {
+    "complexity": "media",
+    "baseHours": 28,
+    "reason": "Incluye calendario, validaciones de disponibilidad, estados de reserva y backoffice operativo."
+  }
+}

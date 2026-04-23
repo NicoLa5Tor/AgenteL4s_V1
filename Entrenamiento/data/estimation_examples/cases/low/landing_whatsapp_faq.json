@@ -1,0 +1,18 @@
+{
+  "name": "landing_whatsapp_faq",
+  "tags": ["landing_page", "whatsapp_cta", "faq", "web", "small", "low", "services"],
+  "requirement": {
+    "title": "Landing con CTA a WhatsApp y FAQ",
+    "description": "Landing de captacion con secciones comerciales, preguntas frecuentes y boton flotante de WhatsApp. Sin dashboard ni integraciones complejas.",
+    "priority": "media",
+    "involvedUser": "cliente final",
+    "hasExternalConnection": true,
+    "requiresVisualScreen": true,
+    "devNumber": 1
+  },
+  "estimation": {
+    "complexity": "baja",
+    "baseHours": 10,
+    "reason": "Maquetado, interacciones basicas y CTA externo sin persistencia compleja."
+  }
+}

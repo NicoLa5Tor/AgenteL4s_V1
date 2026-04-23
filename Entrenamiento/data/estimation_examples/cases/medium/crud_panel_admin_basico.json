@@ -1,0 +1,18 @@
+{
+  "name": "crud_panel_admin_basico",
+  "tags": ["admin_panel", "crud", "web", "medium", "medium", "backoffice"],
+  "requirement": {
+    "title": "CRUD de contenidos en panel admin",
+    "description": "Panel interno para crear, editar, listar y desactivar contenidos visibles en la web. Incluye validaciones de formulario y control basico de acceso.",
+    "priority": "alta",
+    "involvedUser": "administrador",
+    "hasExternalConnection": false,
+    "requiresVisualScreen": true,
+    "devNumber": 1
+  },
+  "estimation": {
+    "complexity": "media",
+    "baseHours": 20,
+    "reason": "Incluye formularios, tabla de gestion, persistencia, validaciones y revision de permisos."
+  }
+}

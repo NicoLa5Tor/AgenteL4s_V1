@@ -4,7 +4,7 @@ Script principal actualizado con soporte para PDFs
 """
 import argparse
 import os
-from Entrenamiento.pdf_utils import load_pdf_to_db
+from Entrenamiento.rag.pdf_utils import load_pdf_to_db
 
 def main():
     parser = argparse.ArgumentParser(description="API de servicio LLM con base de datos vectorial")
@@ -18,10 +18,10 @@ def main():
     args = parser.parse_args()
     
     # Importar componentes
-    from Entrenamiento.config import Config
-    from Entrenamiento.model_manager import ModelManager
-    from Entrenamiento.vector_database import VectorDatabase
-    from Entrenamiento.app import FlaskService
+    from Entrenamiento.core.config import Config
+    from Entrenamiento.core.model_manager import ModelManager
+    from Entrenamiento.rag.vector_database import VectorDatabase
+    from Entrenamiento.api.flask_service import FlaskService
     
     # Crear instancias
     config = Config()

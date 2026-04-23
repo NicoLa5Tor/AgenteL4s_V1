@@ -1,0 +1,18 @@
+{
+  "name": "mapa_iframe_simple",
+  "tags": ["map_iframe", "geolocation", "web", "small", "low", "services"],
+  "requirement": {
+    "title": "Mapa de ubicacion embebido",
+    "description": "Mostrar la ubicacion del negocio usando un iframe de Google Maps o servicio equivalente dentro de una pagina existente, sin geolocalizacion, sin rutas, sin panel de administracion del mapa.",
+    "priority": "baja",
+    "involvedUser": "cliente final",
+    "hasExternalConnection": true,
+    "requiresVisualScreen": true,
+    "devNumber": 1
+  },
+  "estimation": {
+    "complexity": "baja",
+    "baseHours": 4,
+    "reason": "Integracion visual sencilla con iframe, ajustes responsivos basicos y prueba minima."
+  }
+}

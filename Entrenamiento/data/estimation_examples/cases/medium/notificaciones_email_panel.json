@@ -1,0 +1,18 @@
+{
+  "name": "notificaciones_email_panel",
+  "tags": ["notifications", "email", "admin_panel", "web", "medium", "medium"],
+  "requirement": {
+    "title": "Notificaciones por correo desde panel",
+    "description": "Panel interno para disparar notificaciones por correo segun eventos del negocio, con plantillas basicas, historial y configuracion simple de destinatarios.",
+    "priority": "alta",
+    "involvedUser": "operador interno",
+    "hasExternalConnection": true,
+    "requiresVisualScreen": true,
+    "devNumber": 1
+  },
+  "estimation": {
+    "complexity": "media",
+    "baseHours": 22,
+    "reason": "Incluye integracion de correo, eventos, trazabilidad e interfaz operativa para gestionar envios."
+  }
+}

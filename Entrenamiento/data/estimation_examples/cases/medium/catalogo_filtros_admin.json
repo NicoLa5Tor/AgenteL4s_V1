@@ -1,0 +1,18 @@
+{
+  "name": "catalogo_filtros_admin",
+  "tags": ["catalog", "filters", "admin_panel", "web", "medium", "medium", "retail"],
+  "requirement": {
+    "title": "Catalogo web con filtros y administracion",
+    "description": "Catalogo de productos o servicios con busqueda, filtros y panel interno para gestionar fichas, categorias e imagenes.",
+    "priority": "media",
+    "involvedUser": "administrador",
+    "hasExternalConnection": false,
+    "requiresVisualScreen": true,
+    "devNumber": 1
+  },
+  "estimation": {
+    "complexity": "media",
+    "baseHours": 30,
+    "reason": "Combina experiencia publica con panel de administracion, filtros y persistencia estructurada."
+  }
+}

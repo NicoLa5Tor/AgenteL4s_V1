@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "description": "Catalogo padre de ejemplos de estimacion. Cada entrada referencia un caso individual.",
+  "examples": [
+    {
+      "id": "landing_contacto_basica",
+      "path": "cases/low/landing_contacto_basica.json",
+      "tags": ["landing_page", "contact_form", "web", "small", "low", "services"]
+    },
+    {
+      "id": "mapa_iframe_simple",
+      "path": "cases/low/mapa_iframe_simple.json",
+      "tags": ["map_iframe", "geolocation", "web", "small", "low", "services"]
+    },
+    {
+      "id": "sitio_brochure_galeria",
+      "path": "cases/low/sitio_brochure_galeria.json",
+      "tags": ["corporate_site", "gallery", "web", "small", "low", "marketing"]
+    },
+    {
+      "id": "landing_whatsapp_faq",
+      "path": "cases/low/landing_whatsapp_faq.json",
+      "tags": ["landing_page", "whatsapp_cta", "faq", "web", "small", "low", "services"]
+    },
+    {
+      "id": "landing_admin_contenido",
+      "path": "cases/medium/landing_admin_contenido.json",
+      "tags": ["landing_page", "admin_panel", "cms", "web", "medium", "medium", "marketing"]
+    },
+    {
+      "id": "blog_cms_basico",
+      "path": "cases/medium/blog_cms_basico.json",
+      "tags": ["cms", "blog", "admin_panel", "web", "medium", "medium", "marketing"]
+    },
+    {
+      "id": "crud_panel_admin_basico",
+      "path": "cases/medium/crud_panel_admin_basico.json",
+      "tags": ["admin_panel", "crud", "web", "medium", "medium", "backoffice"]
+    },
+    {
+      "id": "dashboard_reportes_intermedio",
+      "path": "cases/medium/dashboard_reportes_intermedio.json",
+      "tags": ["dashboard", "reports", "admin_panel", "web", "medium", "medium"]
+    },
+    {
+      "id": "integracion_api_simple",
+      "path": "cases/medium/integracion_api_simple.json",
+      "tags": ["external_api", "integration", "web", "medium", "medium"]
+    },
+    {
+      "id": "auth_roles_basico",
+      "path": "cases/medium/auth_roles_basico.json",
+      "tags": ["authentication", "roles", "admin_panel", "web", "medium", "medium"]
+    },
+    {
+      "id": "agenda_reservas_admin",
+      "path": "cases/medium/agenda_reservas_admin.json",
+      "tags": ["booking", "calendar", "admin_panel", "web", "medium", "medium", "services"]
+    },
+    {
+      "id": "catalogo_filtros_admin",
+      "path": "cases/medium/catalogo_filtros_admin.json",
+      "tags": ["catalog", "filters", "admin_panel", "web", "medium", "medium", "retail"]
+    },
+    {
+      "id": "notificaciones_email_panel",
+      "path": "cases/medium/notificaciones_email_panel.json",
+      "tags": ["notifications", "email", "admin_panel", "web", "medium", "medium"]
+    },
+    {
+      "id": "documentos_upload_basico",
+      "path": "cases/medium/documentos_upload_basico.json",
+      "tags": ["file_upload", "documents", "admin_panel", "web", "medium", "medium", "backoffice"]
+    },
+    {
+      "id": "leads_cotizacion_admin",
+      "path": "cases/medium/leads_cotizacion_admin.json",
+      "tags": ["contact_form", "lead_management", "admin_panel", "notifications", "web", "medium", "medium", "services"]
+    },
+    {
+      "id": "ecommerce_pagos_pedidos",
+      "path": "cases/high/ecommerce_pagos_pedidos.json",
+      "tags": ["ecommerce", "payments", "orders", "admin_panel", "web", "large", "high", "retail"]
+    },
+    {
+      "id": "marketplace_doble_panel",
+      "path": "cases/high/marketplace_doble_panel.json",
+      "tags": ["marketplace", "two_sided", "payments", "chat", "web", "large", "high"]
+    },
+    {
+      "id": "app_movil_geolocalizacion_entregas",
+      "path": "cases/high/app_movil_geolocalizacion_entregas.json",
+      "tags": ["mobile_app", "geolocation", "tracking", "notifications", "large", "high", "logistics"]
+    },
+    {
+      "id": "erp_inventario_reportes_roles",
+      "path": "cases/high/erp_inventario_reportes_roles.json",
+      "tags": ["erp", "inventory", "reports", "roles", "admin_panel", "web", "large", "high"]
+    },
+    {
+      "id": "saas_multitenant_billing_automation",
+      "path": "cases/very_high/saas_multitenant_billing_automation.json",
+      "tags": ["saas", "multi_tenant", "billing", "automation", "admin_panel", "web", "enterprise", "very_high"]
+    },
+    {
+      "id": "logistica_rutas_tiempo_real",
+      "path": "cases/very_high/logistica_rutas_tiempo_real.json",
+      "tags": ["logistics", "real_time", "tracking", "geolocation", "mobile_app", "enterprise", "very_high"]
+    },
+    {
+      "id": "plataforma_educativa_video_evaluaciones",
+      "path": "cases/very_high/plataforma_educativa_video_evaluaciones.json",
+      "tags": ["education", "video", "evaluations", "roles", "admin_panel", "web", "enterprise", "very_high"]
+    }
+  ]
+}

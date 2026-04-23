@@ -29,6 +29,28 @@ python main.py --serve
 
 Por defecto, el servidor escucha en el puerto 5000. Puedes cambiar el puerto con el parámetro `--port`.
 
+## Estructura interna
+
+La lógica del proyecto quedó separada por responsabilidad dentro de `Entrenamiento/`:
+
+- `api/`
+  - `flask_service.py`: capa HTTP y rutas Flask
+- `core/`
+  - `config.py`: configuración central
+  - `model_manager.py`: carga de embeddings y modelo local legacy
+- `services/`
+  - `requirements_service.py`: generación de requerimientos
+  - `estimation_service.py`: estimación de horas
+  - `requirement_chat_service.py`: chat por requerimiento
+- `rag/`
+  - `vector_database.py`: base vectorial documental
+  - `pdf_utils.py`: carga y fragmentación de PDFs
+  - `estimation_examples_service.py`: retrieval de ejemplos para estimación
+- `data/`
+  - `estimation_examples.json`: casos curados para calibrar horas
+
+Con esto, el RAG documental y el RAG de estimación quedan separados y no comparten responsabilidades.
+
 ## API Endpoints
 
 ### Gestión de PDFs
