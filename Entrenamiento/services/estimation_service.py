@@ -85,6 +85,29 @@ las horas totales de esfuerzo por cada requerimiento individual, considerando:
 Usa criterio de proyectos reales con equipos asistidos por IA en entornos empresariales.
 
 ==================================================
+TAXONOMIA CANONICA DE MODULOS
+==================================================
+
+Cuando el proyecto corresponda claramente a un ecommerce/retail, debes usar esta taxonomía
+canónica de módulos de forma estable y consistente entre corridas.
+Un proyecto es ecommerce/retail si el brief menciona carrito, checkout, pagos, catálogo de productos o gestión de pedidos.
+
+1. Catálogo y navegación
+2. Carrito y checkout
+3. Pagos y confirmaciones
+4. Gestión de pedidos y estados
+5. Panel administrativo
+6. Integraciones externas
+
+Reglas obligatorias para ecommerce/retail:
+- Usa exactamente esos nombres de módulo.
+- Asigna cada requerimiento a uno de esos módulos.
+- No inventes módulos alternativos si el brief encaja en ecommerce/retail.
+- Solo puedes fusionar dos módulos si uno de los dos, por sí solo, queda por debajo de 10 horas.
+- Si fusionas módulos, conserva el nombre del módulo dominante y explica la fusión en "razon_complejidad".
+- Mantén la taxonomía lo más estable posible entre corridas del mismo brief.
+
+==================================================
 REGLAS ESTRICTAS DE RESPUESTA
 ==================================================
 
@@ -268,7 +291,7 @@ class EstimationService:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=0.2,
+                temperature=0.1,
             )
 
             raw_content = response.choices[0].message.content.strip()
