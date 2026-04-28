@@ -11,7 +11,9 @@ o establecer la variable de entorno ESTIMATION_PROVIDER=lmstudio.
 """
 import json
 import logging
-from openai import OpenAI, APITimeoutError, APIError
+import unicodedata
+import re
+from openai import OpenAI
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +132,9 @@ en "supuestos" y ajusta ligeramente al alza las horas estimadas.
 16. Si hay ejemplos_relevantes de baja complejidad muy parecidos al requerimiento actual, evita inflar horas sin justificación concreta.
 17. Si el requerimiento es esencialmente "mostrar un mapa embebido/iframe" sin tracking, rutas, panel admin ni lógica de negocio adicional, normalmente debe quedar cerca de 2-6 horas base.
 18. Si el requerimiento es una landing o formulario simple y existe ejemplo relevante equivalente, mantén la estimación cerca del ejemplo salvo diferencia explícita.
+19. CRÍTICO: El campo "title" de cada requerimiento en "modulos[].requerimientos" debe ser EXACTAMENTE igual \
+al campo "title" del requerimiento de entrada correspondiente. No lo parafrasees, no lo abrevies, no lo \
+reformules. Cópialo literalmente tal como aparece en "requirements".
 
 ==================================================
 CRITERIOS DE COMPLEJIDAD
@@ -170,7 +175,7 @@ SCHEMA DE SALIDA — OBLIGATORIO
       "razon_complejidad": "string",
       "requerimientos": [
         {
-          "title": "string",
+          "title": "string — copia LITERAL del title de entrada",
           "horas_estimadas": 0,
           "razon": "string"
         }
@@ -388,7 +393,8 @@ class EstimationService:
         for index, level_estimation in enumerate(level_estimations):
             self._validate_level_estimation(level_estimation, index)
 
-        self._validate_requirement_coverage(estimation, source_requirements)
+        # Valida cobertura y auto-corrige títulos (normalización case/whitespace)
+        self._validate_and_fix_requirement_coverage(estimation, source_requirements)
 
         return estimation
 
@@ -506,25 +512,69 @@ class EstimationService:
             "activeLevels": active_levels,
         }
 
-    def _validate_requirement_coverage(self, estimation: dict, source_requirements: list) -> None:
-        expected_titles = []
+    # ------------------------------------------------------------------
+    # Normalización de títulos
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _normalize_title(title: str) -> str:
+        """
+        Normaliza un título para comparación tolerante:
+        - Strip de espacios
+        - Minúsculas
+        - Elimina acentos/diacríticos
+        - Colapsa espacios múltiples
+        """
+        s = title.strip().lower()
+        # eliminar diacríticos
+        s = unicodedata.normalize("NFD", s)
+        s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+        # colapsar espacios
+        s = re.sub(r"\s+", " ", s)
+        return s
+
+    def _validate_and_fix_requirement_coverage(
+        self, estimation: dict, source_requirements: list
+    ) -> None:
+        """
+        Valida que cada requerimiento de entrada esté en la salida.
+        Si el título coincide tras normalización (mayúsculas/acentos/espacios),
+        lo corrige en el objeto en lugar de rechazar.
+        Sólo falla si hay requerimientos realmente ausentes o extras.
+        """
+        # Construir mapa normalizado → título original
+        expected: dict[str, str] = {}
         for index, requirement in enumerate(source_requirements):
             title = requirement.get("title") if isinstance(requirement, dict) else None
             if not isinstance(title, str) or not title.strip():
                 raise ValueError(f"El requerimiento de entrada {index} no tiene un 'title' valido.")
-            expected_titles.append(title.strip())
+            norm = self._normalize_title(title)
+            expected[norm] = title.strip()   # clave normalizada → título exacto esperado
 
-        returned_titles = []
+        # Recoger títulos devueltos y detectar duplicados
+        returned: list[str] = []
         for module in estimation.get("modulos", []):
-            for requirement in module.get("requerimientos", []):
-                returned_titles.append(requirement["title"].strip())
+            for req in module.get("requerimientos", []):
+                returned.append(req["title"].strip())
 
-        duplicates = sorted({title for title in returned_titles if returned_titles.count(title) > 1})
+        duplicates = sorted({t for t in returned if returned.count(t) > 1})
         if duplicates:
             raise ValueError(f"La salida repite requerimientos y eso no es valido: {duplicates}.")
 
-        missing = [title for title in expected_titles if title not in returned_titles]
-        extras = [title for title in returned_titles if title not in expected_titles]
+        # Intentar mapear cada título devuelto al esperado (por normalización)
+        norm_returned: dict[str, str] = {
+            self._normalize_title(t): t for t in returned
+        }
+
+        missing = [
+            original for norm, original in expected.items()
+            if norm not in norm_returned
+        ]
+        extras = [
+            ret for norm_ret, ret in norm_returned.items()
+            if norm_ret not in expected
+        ]
+
         if missing or extras:
             chunks = []
             if missing:
@@ -533,17 +583,28 @@ class EstimationService:
                 chunks.append(f"sobran estos requerimientos: {extras}")
             raise ValueError("La salida no coincide exactamente con la entrada; " + "; ".join(chunks))
 
+        # Auto-corregir títulos en la respuesta para que coincidan exactamente con la entrada
+        for module in estimation.get("modulos", []):
+            for req in module.get("requerimientos", []):
+                norm_ret = self._normalize_title(req["title"])
+                if norm_ret in expected:
+                    req["title"] = expected[norm_ret]
+
     def _build_retry_feedback(self, error: Exception, requirements: list) -> str:
         expected_titles = [
-            requirement.get("title")
-            for requirement in requirements
-            if isinstance(requirement, dict) and isinstance(requirement.get("title"), str)
+            req.get("title")
+            for req in requirements
+            if isinstance(req, dict) and isinstance(req.get("title"), str)
         ]
+        titles_json = json.dumps(expected_titles, ensure_ascii=False)
         return (
-            "Tu respuesta anterior fue rechazada. "
+            "Tu respuesta anterior fue rechazada por el validador de esquema. "
             f"Error exacto: {str(error)}. "
             "Debes reenviar TODO el JSON completo desde cero. No dejes campos vacios ni parciales. "
-            "Cada requerimiento debe aparecer exactamente una vez dentro de modulos[].requerimientos y "
-            "cada uno debe traer obligatoriamente 'title', 'horas_estimadas' y 'razon'. "
-            f"Titulos esperados: {expected_titles}."
+            "CRÍTICO: el campo \"title\" de cada objeto en modulos[].requerimientos DEBE ser una "
+            "copia LITERAL del title del requerimiento de entrada correspondiente — sin parafrasear, "
+            "sin abreviar, sin cambiar mayúsculas ni tildes. "
+            "Cada requerimiento debe aparecer exactamente una vez dentro de modulos[].requerimientos "
+            "y cada uno debe traer obligatoriamente 'title', 'horas_estimadas' y 'razon'. "
+            f"Lista EXACTA de títulos esperados (cópialos tal cual): {titles_json}."
         )
