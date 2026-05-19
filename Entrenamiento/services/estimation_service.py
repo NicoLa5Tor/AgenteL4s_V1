@@ -282,17 +282,13 @@ class EstimationService:
             indent=2,
         )
 
-        feedback_message = None
         last_error = None
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_message},
+        ]
 
         for attempt in range(1, self.max_retries + 1):
-            messages = [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message},
-            ]
-            if feedback_message:
-                messages.append({"role": "user", "content": feedback_message})
-
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
@@ -320,13 +316,15 @@ class EstimationService:
                 return self._validate_schema(estimation, requirements)
             except (json.JSONDecodeError, ValueError) as exc:
                 last_error = exc
-                feedback_message = self._build_retry_feedback(exc, requirements)
                 logger.warning(
                     "estimate-effort invalid response | attempt=%d/%d | error=%s",
                     attempt,
                     self.max_retries,
                     str(exc),
                 )
+                if attempt < self.max_retries:
+                    messages.append({"role": "assistant", "content": raw_content})
+                    messages.append({"role": "user", "content": self._build_retry_feedback(exc, requirements)})
 
         raise ValueError(
             f"La respuesta de estimacion siguio incompleta despues de {self.max_retries} intentos: {last_error}"
@@ -557,9 +555,11 @@ class EstimationService:
             for req in module.get("requerimientos", []):
                 returned.append(req["title"].strip())
 
-        duplicates = sorted({t for t in returned if returned.count(t) > 1})
-        if duplicates:
-            raise ValueError(f"La salida repite requerimientos y eso no es valido: {duplicates}.")
+        returned_normalized = [self._normalize_title(t) for t in returned]
+        duplicates_norm = [t for t in set(returned_normalized) if returned_normalized.count(t) > 1]
+        if duplicates_norm:
+            dup_originals = [returned[returned_normalized.index(n)] for n in duplicates_norm]
+            raise ValueError(f"La salida repite requerimientos y eso no es valido: {sorted(dup_originals)}.")
 
         # Intentar mapear cada título devuelto al esperado (por normalización)
         norm_returned: dict[str, str] = {
